@@ -10,10 +10,16 @@ import SwiftUI
 extension View {
     @ViewBuilder
     func hSpacing(_ alignment: Alignment) -> some View {
-        self.frame(maxWidth: .infinity, alignment: <#T##Alignment#>)
+        self.frame(maxWidth: .infinity, alignment: alignment)  // Substituído pelo valor correto
     }
     
     func vSpacing(_ alignment: Alignment) -> some View {
-        self.frame(maxWidth: .infinity, alignment: <#T##Alignment#>)
+        self.frame(maxHeight: .infinity, alignment: alignment)  // Substituído pelo valor correto
+    }
+    
+    //Checando se as duas datas são as mesmas
+    func isSameDate(_ date1: Date, _ date2: Date) -> Bool {
+        return Calendar.current.isDate(date1, inSameDayAs: date2)
     }
 }
+
