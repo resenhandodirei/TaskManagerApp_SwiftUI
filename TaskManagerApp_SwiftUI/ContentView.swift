@@ -7,22 +7,40 @@
 
 import SwiftUI
 
+// Modelo de tarefa
+struct Task: Identifiable {
+    var id = UUID() // Identificador único para cada tarefa
+    var name: String
+    var date: Date
+}
+
 struct ContentView: View {
     @State var currentDate: Date = Date()
-    @State var weekSlider: [Date] = []
+    @State var weekSlider: [Date] = [] // Aqui serão armazenadas múltiplas semanas
     @State var currentWeekIndex: Int = 0
+    @State var selectedDate: Date = Date() // Estado para o dia selecionado
+    
+    // Lista de tarefas de exemplo
+    @State var tasks: [Task] = [
+        Task(name: "Complete SwiftUI tutorial", date: Date()),
+        Task(name: "Meet with team", date: Date()),
+        Task(name: "Submit report", date: Date())
+    ]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Calendar")
                 .font(.system(size: 36, weight: .semibold))
                 .padding(.horizontal)
+                .padding(.bottom, 20)
             
             TabView(selection: $currentWeekIndex) {
                 ForEach(weekSlider.indices, id: \.self) { index in
-                    let weekDate = weekSlider[index]
+                    let weekStartDate = weekSlider[index]
                     
-                    weekView(fetchWeek(for: weekDate))
+                    // Para cada semana, obtenha os dias e exiba
+                    weekView(fetchWeek(for: weekStartDate))
+                        .tag(index) // Importante para rastrear o índice atual
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
@@ -40,7 +58,6 @@ struct ContentView: View {
         .frame(maxWidth: .infinity)
     }
     
-    // Mover a função `weekView` para fora da view principal
     @ViewBuilder
     func weekView(_ week: [Date.WeekDay]) -> some View {
         HStack(spacing: 0) {
@@ -56,8 +73,8 @@ struct ContentView: View {
                         .font(.system(size: 20))
                         .frame(width: 40, height: 40)
                         .background(content: {
-                            if isSameDate(day.date, currentDate) {
-                                RoundedRectangle(cornerRadius: 15).fill(.blue)
+                            if isSameDate(day.date, selectedDate) {
+                                RoundedRectangle(cornerRadius: 15).fill(.blue) // Destaque o dia selecionado
                             }
                             
                             if day.date.isToday {
@@ -67,22 +84,49 @@ struct ContentView: View {
                                     .vSpacing(.bottom)
                             }
                         })
+                        .onTapGesture {
+                            selectedDate = day.date // Atualiza o dia selecionado ao tocar
+                        }
+                    
+                    Spacer()
+                    
+                    // Exibe a lista de tarefas
+                    ScrollView(.vertical) {
+                        VStack {
+                            TaskView() // Exibe a lista de tarefas
+                        }
+                        .hSpacing(.center)
+                        .vSpacing(.center)
+                    }
+                    .scrollIndicators(.hidden)
                 }
             }
         }
     }
     
-    func setupWeekSlider() {
-        // Gera os dias da semana a partir da data atual
-        let calendar = Calendar.current
-        let currentWeek = calendar.dateInterval(of: .weekOfMonth, for: currentDate)
-        if let startOfWeek = currentWeek?.start {
-            weekSlider = (0..<7).compactMap { dayOffset in
-                calendar.date(byAdding: .day, value: dayOffset, to: startOfWeek)
+    @ViewBuilder
+    func TaskView() -> some View {
+        VStack(alignment: .leading) {
+            ForEach(tasks) { task in
+                TaskItemView(task: task) // Passa cada tarefa para a view
             }
         }
     }
     
+    // Este método será chamado ao carregar a tela para configurar várias semanas
+    func setupWeekSlider() {
+        let calendar = Calendar.current
+        let currentWeek = calendar.dateInterval(of: .weekOfMonth, for: currentDate)
+        
+        // Adiciona semanas antes e depois da semana atual
+        for i in -4...4 { // Aqui define quantas semanas deseja carregar
+            if let startOfWeek = calendar.date(byAdding: .weekOfMonth, value: i, to: currentWeek!.start) {
+                weekSlider.append(startOfWeek)
+            }
+        }
+    }
+    
+    // Função para obter os dias da semana a partir da data
     func fetchWeek(for date: Date) -> [Date.WeekDay] {
         let calendar = Calendar.current
         let startDate = calendar.startOfDay(for: date)
@@ -101,6 +145,11 @@ struct ContentView: View {
         return week
     }
     
+    func isSameDate(_ date1: Date, _ date2: Date) -> Bool {
+        let calendar = Calendar.current
+        return calendar.isDate(date1, inSameDayAs: date2)
+    }
+    
     func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEEE, MMM d"
@@ -108,6 +157,25 @@ struct ContentView: View {
     }
 }
 
+// View para exibir cada item de tarefa
+struct TaskItemView: View {
+    var task: Task
+    
+    var body: some View {
+        HStack {
+            Text(task.name)
+                .font(.body)
+                .padding()
+            Spacer()
+        }
+        .background(Color.white)
+        .cornerRadius(8)
+        .shadow(radius: 2)
+        .padding(.horizontal)
+    }
+}
+
+// Para arredondar cantos específicos
 struct RoundedCorner: Shape {
     var radius: CGFloat = 0.0
     var corners: UIRectCorner = .allCorners
